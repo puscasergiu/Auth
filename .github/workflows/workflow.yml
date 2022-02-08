@@ -1,0 +1,28 @@
+name: Build, push to registry and deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build, push to registry and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: azure/docker-login@v1
+      with:
+        login-server: authapicontainerregistry.azurecr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    - run: |
+        docker build . -f ./Auth.API/Dockerfile -t authapicontainerregistry.azurecr.io/authapi:${{ github.sha }}
+        docker push authapicontainerregistry.azurecr.io/authapi:${{ github.sha }}     
+    - uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'auth-api-web'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        images: 'authapicontainerregistry.azurecr.io/authapi:${{ github.sha }}'
+        
