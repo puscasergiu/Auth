@@ -1,5 +1,5 @@
 using Auth.API.Filters;
-using Auth.API.Models;
+using Auth.API.Models.Options;
 using Auth.Core.Commands.LoginUserCommand;
 using Auth.Core.Commands.RegisterUserCommand;
 using Auth.Core.Cryptography;
@@ -35,14 +35,13 @@ namespace Auth.API
                 options.Filters.Add<CustomExceptionFilter>()
             );
 
-            var tokenSettings = Configuration.GetSection("Token").Get<TokenSettings>();
-            var connectionStringsSettings = Configuration.GetSection("ConnectionStrings").Get<ConnectionStringsSettings>();
-            services.AddSingleton(tokenSettings);
-
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth.API", Version = "v1" });
             });
+
+            services.AddSingleton<ITokenSettings>(Configuration.GetSection(TokenOptions.SectionName).Get<TokenOptions>());
+            var connectionStringsOptions = Configuration.GetSection(ConnectionStringsOptions.SectionName).Get<ConnectionStringsOptions>();
 
             services.AddMediatR(typeof(RegisterUserCommand).Assembly);
 
@@ -56,8 +55,8 @@ namespace Auth.API
 
             services.AddSingleton<HashCrypter>();
             services.AddSingleton<TokenCrypter>();
-            services.AddScoped<ITokenService, TokenService>();
 
+            services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<AbstractValidator<RegisterUserCommand>, RegisterUserCommandValidator>();
             services.AddScoped<AbstractValidator<LoginUserCommand>, LoginUserCommandValidator>();
         }

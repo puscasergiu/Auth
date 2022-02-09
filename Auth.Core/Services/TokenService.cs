@@ -14,9 +14,9 @@ namespace Auth.Core.Cryptography
     {
         private readonly IRevokedTokenRepository _revokedTokenRepository;
         private readonly TokenCrypter _tokenCrypter;
-        private readonly TokenSettings _tokenSettings;
+        private readonly ITokenSettings _tokenSettings;
 
-        public TokenService(IRevokedTokenRepository revokedTokenRepository, TokenCrypter tokenCrypter, TokenSettings tokenSettings)
+        public TokenService(IRevokedTokenRepository revokedTokenRepository, TokenCrypter tokenCrypter, ITokenSettings tokenSettings)
         {
             _revokedTokenRepository = revokedTokenRepository ?? throw new ArgumentNullException(nameof(revokedTokenRepository));
             _tokenCrypter = tokenCrypter ?? throw new ArgumentNullException(nameof(tokenCrypter));

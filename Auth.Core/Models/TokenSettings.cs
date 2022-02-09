@@ -2,7 +2,7 @@
 
 namespace Auth.Core.Models
 {
-    public class TokenSettings
+    public interface ITokenSettings
     {
         public string Salt { get; set; }
         public TimeSpan LifeTime { get; set; }
