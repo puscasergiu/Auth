@@ -17,8 +17,7 @@ namespace Auth.Infrastructure.Repositories
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        /// <inheritdoc/>
-        public async Task<User> TryGetAsync(Expression<Func<User, bool>> where)
+        public async Task<(bool result, User user)> TryGetAsync(Expression<Func<User, bool>> where)
         {
             var query = _context.Users.AsQueryable();
 
@@ -27,10 +26,12 @@ namespace Auth.Infrastructure.Repositories
                 query = query.Where(where);
             }
 
-            return await query.FirstOrDefaultAsync();
+            var user = await query.FirstOrDefaultAsync();
+
+            return user == null ? (false, null) : (true, user);
+
         }
 
-        /// <inheritdoc/>
         public async Task<bool> ExistsAsync(Expression<Func<User, bool>> where)
         {
             var query = _context.Users.AsQueryable();
@@ -43,7 +44,6 @@ namespace Auth.Infrastructure.Repositories
             return await query.AnyAsync();
         }
 
-        /// <inheritdoc/>
         public void Insert(User user)
         {
             _context.Users.Add(user);

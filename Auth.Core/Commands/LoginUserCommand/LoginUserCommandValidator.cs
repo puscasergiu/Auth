@@ -1,5 +1,4 @@
-﻿using Auth.Core.Validators;
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace Auth.Core.Commands.LoginUserCommand
 {
@@ -14,5 +13,4 @@ namespace Auth.Core.Commands.LoginUserCommand
                 .NotEmpty();
         }
     }
-
 }

@@ -6,8 +6,29 @@ namespace Auth.Core.Cryptography
 {
     public class HashCrypter
     {
+        public byte[] GenerateSalt()
+        {
+            byte[] salt = new byte[128 / 8];
+            using (var rngCsp = new RNGCryptoServiceProvider())
+            {
+                rngCsp.GetNonZeroBytes(salt);
+            };
+
+            return salt;
+        }
+
         public string Hash(string text, byte[] salt)
         {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new ArgumentException($"'{nameof(text)}' cannot be null or whitespace.", nameof(text));
+            }
+
+            if (salt is null)
+            {
+                throw new ArgumentNullException(nameof(salt));
+            }
+
             string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
                password: text,
                salt: salt,
@@ -18,29 +39,24 @@ namespace Auth.Core.Cryptography
             return hashed;
         }
 
-        public (string hashedText, string salt) Hash(string text)
+        public bool Verify(string plainText, string hashedText, byte[] salt)
         {
-            byte[] salt = new byte[128 / 8];
-            using (var rngCsp = new RNGCryptoServiceProvider())
+            if (string.IsNullOrWhiteSpace(plainText))
             {
-                rngCsp.GetNonZeroBytes(salt);
-            };
+                throw new ArgumentException($"'{nameof(plainText)}' cannot be null or whitespace.", nameof(plainText));
+            }
 
-            var hashed = Hash(text, salt);
+            if (string.IsNullOrWhiteSpace(hashedText))
+            {
+                throw new ArgumentException($"'{nameof(hashedText)}' cannot be null or whitespace.", nameof(hashedText));
+            }
 
-            return (hashed, Convert.ToBase64String(salt));
-        }
+            if (salt is null)
+            {
+                throw new ArgumentNullException(nameof(salt));
+            }
 
-        public string Hash(string text, string salt)
-        {
-            string hashed = Hash(text, Convert.FromBase64String(salt));
-
-            return hashed;
-        }
-
-        public bool Verify(string plainText, string hashedText, string salt)
-        {
-            return Hash(plainText, Convert.FromBase64String(salt)) == hashedText;
+            return Hash(plainText, salt) == hashedText;
         }
     }
 }

@@ -2,8 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Auth.Core.Cryptography;
-using Auth.Core.Exceptions;
-using FluentValidation;
+using Auth.Core.Models;
 using MediatR;
 
 namespace Auth.Core.Commands.VerifyTokenCommand
@@ -19,14 +18,12 @@ namespace Auth.Core.Commands.VerifyTokenCommand
 
         public async Task<VerifyTokenCommandResponse> Handle(VerifyTokenCommand request, CancellationToken cancellationToken)
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
-
-            TokenPayloadModel token;
-            try
+            if (request == null)
             {
-                token = _tokenService.DecodeToken(request.Token);
+                throw new ArgumentNullException(nameof(request));
             }
-            catch (TokenDecodeException)
+
+            if (!_tokenService.TryDecodeToken(request.Token, out TokenPayloadModel token))
             {
                 return VerifyTokenCommandResponse.Invalid("Token is not in a valid format");
             }

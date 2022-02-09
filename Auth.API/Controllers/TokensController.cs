@@ -19,10 +19,10 @@ namespace Auth.API.Controllers
 
         [HttpPost("Verify")]
         [ProducesResponseType(200, Type = typeof(VerifyTokenCommandResponse))]
-        public async Task<IActionResult> Verify(VerifyTokenCommand command)
+        public async Task<VerifyTokenCommandResponse> Verify(VerifyTokenCommand command)
         {
             var result = await _mediator.Send(command);
-            return Ok(result);
+            return result;
         }
     }
 }

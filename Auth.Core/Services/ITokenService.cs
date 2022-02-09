@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Auth.Core.Exceptions;
+using Auth.Core.Models;
 
 namespace Auth.Core.Cryptography
 {
     public interface ITokenService
     {
         string CreateToken(Guid userId, string username);
-        /// <exception cref="TokenDecodeException"></exception>
-        TokenPayloadModel DecodeToken(string token);
+        bool TryDecodeToken(string token, out TokenPayloadModel result);
         Task<bool> ValidateToken(string token, TokenPayloadModel tokenPayload);
     }
 }

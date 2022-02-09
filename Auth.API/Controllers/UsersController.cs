@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Auth.API.Models;
 using Auth.Core.Commands.LoginUserCommand;
+using Auth.Core.Commands.LogoutUserCommand;
 using Auth.Core.Commands.RegisterUserCommand;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +22,6 @@ namespace Auth.API.Controllers
 
         [HttpPost("Register")]
         [ProducesResponseType(204)]
-        [ProducesResponseType(400, Type = typeof(ValidationErrorModel))]
         [ProducesResponseType(400, Type = typeof(DomainErrorModel))]
         public async Task<IActionResult> Register(RegisterUserCommand command)
         {
@@ -31,12 +31,11 @@ namespace Auth.API.Controllers
 
         [HttpPost("Login")]
         [ProducesResponseType(200, Type = typeof(LoginUserCommandResponse))]
-        [ProducesResponseType(400, Type = typeof(ValidationErrorModel))]
         [ProducesResponseType(400, Type = typeof(DomainErrorModel))]
-        public async Task<IActionResult> Login(LoginUserCommand command)
+        public async Task<LoginUserCommandResponse> Login(LoginUserCommand command)
         {
             var loginResult = await _mediator.Send(command);
-            return Ok(loginResult);
+            return loginResult;
         }
 
         [HttpPost("Logout")]

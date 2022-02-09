@@ -1,13 +1,14 @@
 using Auth.API.Filters;
-using Auth.API.Models;
-using Auth.Core.Commands.LoginUserCommand;
+using Auth.API.Miscellaneous;
+using Auth.API.Models.Options;
+using Auth.Core.Abstractions;
 using Auth.Core.Commands.RegisterUserCommand;
 using Auth.Core.Cryptography;
 using Auth.Core.Models;
 using Auth.Core.Repositories;
 using Auth.Infrastructure;
 using Auth.Infrastructure.Repositories;
-using FluentValidation;
+using FluentValidation.AspNetCore;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,33 +34,30 @@ namespace Auth.API
         {
             services.AddControllers(options =>
                 options.Filters.Add<CustomExceptionFilter>()
-            );
-
-            var tokenSettings = Configuration.GetSection("Token").Get<TokenSettings>();
-            var connectionStringsSettings = Configuration.GetSection("ConnectionStrings").Get<ConnectionStringsSettings>();
-            services.AddSingleton(tokenSettings);
+            ).AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<RegisterUserCommandValidator>());
 
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth.API", Version = "v1" });
             });
 
+            services.AddSingleton<ITokenSettings>(Configuration.GetSection(TokenOptions.SectionName).Get<TokenOptions>());
+            var connectionStringsOptions = Configuration.GetSection(ConnectionStringsOptions.SectionName).Get<ConnectionStringsOptions>();
+
             services.AddMediatR(typeof(RegisterUserCommand).Assembly);
 
-            services.AddDbContext<AuthDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Database")));
+            services.AddDbContext<AuthDBContext>(options => options.UseSqlServer(connectionStringsOptions.Database));
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUserRepository, UserRepository>();
 
-            var multiplexer = ConnectionMultiplexer.Connect(Configuration.GetConnectionString("Redis"));
+            var multiplexer = ConnectionMultiplexer.Connect(connectionStringsOptions.Redis);
             services.AddScoped(sp => multiplexer.GetDatabase());
             services.AddScoped<IRevokedTokenRepository, RevokedTokenRepository>();
 
             services.AddSingleton<HashCrypter>();
             services.AddSingleton<TokenCrypter>();
             services.AddScoped<ITokenService, TokenService>();
-
-            services.AddScoped<AbstractValidator<RegisterUserCommand>, RegisterUserCommandValidator>();
-            services.AddScoped<AbstractValidator<LoginUserCommand>, LoginUserCommandValidator>();
+            services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, AuthDBContext authDBContext)
