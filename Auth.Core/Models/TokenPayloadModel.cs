@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Auth.Core.Cryptography
+namespace Auth.Core.Models
 {
     public class TokenPayloadModel
     {

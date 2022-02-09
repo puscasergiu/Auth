@@ -8,12 +8,12 @@ namespace Auth.Core.Commands.VerifyTokenCommand
         {
         }
 
-        public static VerifyTokenCommandResponse Invalid(string failureReason)
+        public static VerifyTokenCommandResponse Invalid(string reason)
         {
             return new VerifyTokenCommandResponse()
             {
                 IsValid = false,
-                FailureReason = failureReason
+                NotValidReason = reason
             };
         }
 
@@ -28,6 +28,6 @@ namespace Auth.Core.Commands.VerifyTokenCommand
 
         public bool IsValid { get; set; }
         public DateTime? ExpirationDate { get; set; }
-        public string FailureReason { get; set; }
+        public string NotValidReason { get; set; }
     }
 }

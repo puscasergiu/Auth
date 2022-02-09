@@ -13,7 +13,7 @@ services:
     image: "mcr.microsoft.com/mssql/server"
     container_name: auth.db
     environment:
-      SA_PASSWORD: "password123"
+      SA_PASSWORD: "password123A@"
       ACCEPT_EULA: "Y"
   auth.redis:
     image: redis:6.2-alpine

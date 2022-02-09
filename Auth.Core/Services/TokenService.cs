@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Auth.Core.Abstractions;
 using Auth.Core.Constants;
-using Auth.Core.Exceptions;
 using Auth.Core.Models;
 using Auth.Core.Repositories;
 
@@ -13,14 +13,16 @@ namespace Auth.Core.Cryptography
     public class TokenService : ITokenService
     {
         private readonly IRevokedTokenRepository _revokedTokenRepository;
-        private readonly TokenCrypter _tokenCrypter;
         private readonly ITokenSettings _tokenSettings;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TokenCrypter _tokenCrypter;
 
-        public TokenService(IRevokedTokenRepository revokedTokenRepository, TokenCrypter tokenCrypter, ITokenSettings tokenSettings)
+        public TokenService(IRevokedTokenRepository revokedTokenRepository, ITokenSettings tokenSettings, IDateTimeProvider dateTimeProvider, TokenCrypter tokenCrypter)
         {
             _revokedTokenRepository = revokedTokenRepository ?? throw new ArgumentNullException(nameof(revokedTokenRepository));
-            _tokenCrypter = tokenCrypter ?? throw new ArgumentNullException(nameof(tokenCrypter));
             _tokenSettings = tokenSettings ?? throw new ArgumentNullException(nameof(tokenSettings));
+            _dateTimeProvider = dateTimeProvider ?? throw new ArgumentNullException(nameof(dateTimeProvider));
+            _tokenCrypter = tokenCrypter ?? throw new ArgumentNullException(nameof(tokenCrypter));
         }
 
         public string CreateToken(Guid userId, string username)
@@ -29,37 +31,45 @@ namespace Auth.Core.Cryptography
             {
                 new Claim(Claims.UserId, userId.ToString()),
                 new Claim(Claims.Username, username),
-                new Claim(Claims.ExpirationDate, DateTime.UtcNow.Add(_tokenSettings.LifeTime).Ticks.ToString())
+                new Claim(Claims.ExpirationDate, _dateTimeProvider.UtcNow.Add(_tokenSettings.LifeTime).Ticks.ToString())
             };
 
-            return _tokenCrypter.EncodeToken(claims, _tokenSettings.Salt);
+            return _tokenCrypter.EncodeToken(claims, Convert.FromBase64String(_tokenSettings.Salt));
         }
 
-        /// <inheritdoc/>
-        public TokenPayloadModel DecodeToken(string token)
+        public bool TryDecodeToken(string token, out TokenPayloadModel result)
         {
-            try
+            result = null;
+            if (!_tokenCrypter.TryDecodeToken(token, Convert.FromBase64String(_tokenSettings.Salt), out IList<Claim> claims))
             {
-                var claims = _tokenCrypter.DecodeToken(token, _tokenSettings.Salt);
-
-                TokenPayloadModel payload = new()
-                {
-                    UserId = Guid.Parse(claims.First(c => c.Type == Claims.UserId).Value),
-                    Username = claims.First(c => c.Type == Claims.Username).Value,
-                    ExpirationDate = new DateTime(long.Parse(claims.First(c => c.Type == Claims.ExpirationDate).Value))
-                };
-
-                return payload;
+                return false;
             }
-            catch (Exception e)
+
+            var userIdClaim = claims.FirstOrDefault(c => c.Type == Claims.UserId);
+            var usernameClaim = claims.FirstOrDefault(c => c.Type == Claims.Username);
+            var expirationDateClaim = claims.FirstOrDefault(c => c.Type == Claims.ExpirationDate);
+            if (userIdClaim == null || usernameClaim == null || expirationDateClaim == null)
             {
-                throw new TokenDecodeException($"Failed to decode the token", e);
+                return false;
             }
+
+            if (!Guid.TryParse(userIdClaim.Value, out Guid userId) || !long.TryParse(expirationDateClaim.Value, out long expirationDateTicks) || expirationDateTicks < 0)
+            {
+                return false;
+            }
+
+            result = new TokenPayloadModel()
+            {
+                UserId = userId,
+                Username = usernameClaim.Value,
+                ExpirationDate = new DateTime(expirationDateTicks)
+            };
+            return true;
         }
 
         public async Task<bool> ValidateToken(string token, TokenPayloadModel tokenPayload)
         {
-            if (tokenPayload.ExpirationDate < DateTime.UtcNow || await _revokedTokenRepository.ExistsAsync(token))
+            if (tokenPayload.ExpirationDate < _dateTimeProvider.UtcNow || await _revokedTokenRepository.ExistsAsync(token))
             {
                 return false;
             }

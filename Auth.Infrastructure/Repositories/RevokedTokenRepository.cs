@@ -11,7 +11,7 @@ namespace Auth.Infrastructure.Repositories
 
         public RevokedTokenRepository(IDatabase database)
         {
-            _database = database;
+            _database = database ?? throw new System.ArgumentNullException(nameof(database));
         }
 
         public async Task<bool> ExistsAsync(string token)
